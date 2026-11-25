@@ -1,0 +1,23 @@
+node_modules
+.env
+resources
+index
+coverage
+mise.toml
+
+# node
+build
+dist
+
+# Claude
+settings.local.json
+
+# Nix
+result
+result-*
+
+# direnv
+.direnv
+
+# git-hooks.nix (generated)
+.pre-commit-config.yaml

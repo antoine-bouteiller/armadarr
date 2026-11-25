@@ -1,0 +1,52 @@
+[
+  {
+    "hash": "sha512-VzUugWhIKQSWp/xtFrYIrCISDcUXWrCFfxSkqg8ul0DZgo23WRqfz+38Y3mJ2NenUv5kUj14FnjLohm2t8ZGCw==",
+    "path": "node_modules/@effect/platform-bun",
+    "url": "https://registry.npmjs.org/@effect/platform-bun/-/platform-bun-4.1.5.tgz"
+  },
+  {
+    "hash": "sha512-JzlrYe4uKaBFTWihBRXo2pDjkUVB39kQpKdGfXdbp7Co5sKT8hbcjOmdB5pg/WOYESdGTddd3fxD4lwlZELbZQ==",
+    "path": "node_modules/@effect/platform-node-shared",
+    "url": "https://registry.npmjs.org/@effect/platform-node-shared/-/platform-node-shared-4.1.5.tgz"
+  },
+  {
+    "hash": "sha512-WJuPHoGB8WNQuTksNF7SOQpnH02PXeDYz4iueWbBT6/hTWnShY5F3T/hoJA3fY9+uYReDZ7pyTKKx83jQa7aGg==",
+    "path": "node_modules/@types/node",
+    "url": "https://registry.npmjs.org/@types/node/-/node-26.6.10.tgz"
+  },
+  {
+    "hash": "sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==",
+    "path": "node_modules/@types/ws",
+    "url": "https://registry.npmjs.org/@types/ws/-/ws-8.18.2.tgz"
+  },
+  {
+    "hash": "sha512-xyR20KhQI0vg2gD8ILUSQRTTESEYJ0JKdP+QD8J37xbwPTqXRxFM/l0+vUVD9fuSvoYruoTqyt33C4FZv1s4TQ==",
+    "path": "node_modules/effect",
+    "url": "https://registry.npmjs.org/effect/-/effect-4.1.5.tgz"
+  },
+  {
+    "hash": "sha512-QNhWdt7nrgVWWQG58QuGsAR3jv3Hbe4mb4vz7w2csnHavciZJgda1CPNaldF6eVxv90ud3jUXpKlHL69gO38yw==",
+    "path": "node_modules/react",
+    "url": "https://registry.npmjs.org/react/-/react-19.3.1.tgz"
+  },
+  {
+    "hash": "sha512-Y0bARz53lhEC1NMCASs0/j+faB/zqt3R8hpvg1e8+61ZVJ4UL0UdC4cBbXfZMcIuhrfgeILTLe+ZeBCavQPtKQ==",
+    "path": "node_modules/react-dom",
+    "url": "https://registry.npmjs.org/react-dom/-/react-dom-19.3.1.tgz"
+  },
+  {
+    "hash": "sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw==",
+    "path": "node_modules/scheduler",
+    "url": "https://registry.npmjs.org/scheduler/-/scheduler-0.28.0.tgz"
+  },
+  {
+    "hash": "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==",
+    "path": "node_modules/undici-types",
+    "url": "https://registry.npmjs.org/undici-types/-/undici-types-8.9.0.tgz"
+  },
+  {
+    "hash": "sha512-wCkmX8QMOrKjgO8HW2WyDbTSGeqkocxgDzS9iR79rEAexty6/2qzilx3Ag8Tqf9ykop3irLKle0MtVn5qjVnoQ==",
+    "path": "node_modules/ws",
+    "url": "https://registry.npmjs.org/ws/-/ws-8.23.0.tgz"
+  }
+]
