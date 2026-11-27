@@ -1,0 +1,6 @@
+overrides:
+  # Vite+ bundles its own Vite build; plugins peer-depend on `vite`.
+  vite: npm:@voidzero-dev/vite-plus-core@8.3.8001
+
+minimumReleaseAgeExclude:
+  - '@antoine-bouteiller/devkit'

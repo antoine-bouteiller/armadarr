@@ -4,35 +4,23 @@ Full-stack media management service meant to replace the \*arr stack and Autosca
 
 ## Layout
 
-- `src/index.ts` is the server entry. `src/server/` holds the Effect HTTP server and API handlers.
-- `src/api/` holds the `HttpApi` contract shared by the server and the browser. Change it there, never fork it per side.
-- `src/client/` is the React app. `index.html` is imported by `src/server/server.ts`, and Bun bundles it.
-- Imports use the `@/*` alias rooted at `src` and `@tests/*` rooted at `tests`. Tests mirror source paths under `tests/`.
+- `app/backend/` is the Go server. `app/backend/cmd/armadarr/main.go` is the entry and composition root; `app/backend/internal/` holds every other Go package, and `internal/server` composes the HTTP surface. `go.mod` sits at the repository root so the module also covers `app/frontend/embed.go`.
+- `app/frontend/` is the Svelte 5 client and a self-contained pnpm project: run pnpm and `vp` commands from that folder, or with `pnpm --dir app/frontend`. `app/frontend/embed.go` embeds the build output `app/frontend/dist/client` into the binary.
+- `proto/armadarr/v1/` is the Connect RPC contract shared by both apps. Change it there, then run `buf generate` from the repository root; never edit `app/backend/internal/gen` or `app/frontend/src/gen` by hand.
+- Client imports use the `@/*` alias rooted at `app/frontend/src`. Tests sit beside the code: `_test.go` for Go, `*.test.ts` for the client.
+- The design lives in `docs/project_foundation.spec.md` and the specs next to the code (`*.spec.md`).
 
-## Runtime & packaging
+## Toolchain
 
-- **Bun is the runtime, bundler, and package manager.** Run the app with `bun src/index.ts`
-  (`bun run dev` for watch mode) and manage dependencies with `bun install` / `bun add` / `bun remove`.
-  The server is `BunHttpServer` from `@effect/platform-bun`. Bun's `routes` option serves the HTML
-  import, and Effect's `HttpRouter` serves `/api`. There is no Vite.
-- **Hot reload comes from Bun's dev server.** It is on unless `NODE_ENV=production`.
-- **React Compiler handles memoization.** The production build passes `--react-compiler`, and
-  oxlint forbids `useMemo` and `useCallback`.
-- **Lint, format, and type-check are separate commands** — `bun run lint` (oxlint with
-  `--fix`), `bun fmt` (Bun's built-in formatter), and `bun check` (Bun's built-in type
-  checker). Config lives in `oxlint.config.ts`, the `[fmt]` section of `bunfig.toml`, and
-  `tsconfig.json`. Do not add `fmt` or `check` scripts: they would shadow the built-ins.
-  Oxlint and `oxlint-tsgolint` come through `@antoine-bouteiller/devkit` and are patched
-  in `node_modules` by `effect-tsgo patch --oxlint`.
-- **Tests run on Bun's native runner (`bun test`), not vitest.** Use `bun run test`.
-  Import test APIs from `bun:test`.
-- **Nix packaging fetches production dependencies only.** `scripts/nix_deps.ts`
-  writes `nix/deps.json` (tarball URL, hash, and install path of each package in the
-  production closure of `bun.lock`); the flake unpacks them into `node_modules` and
-  runs `bun build --compile --production --react-compiler`. The `postinstall` script regenerates it; commit it
-  alongside `bun.lock`.
+- **The dev shell provides every tool.** Run commands inside `nix develop` (direnv loads it): Go, golangci-lint, buf, Node.js and pnpm.
+- **Go is the server.** `go run ./app/backend/cmd/armadarr` listens on `PORT` (default 3000). Lint and format with `golangci-lint run ./...` and `golangci-lint fmt ./...` from the root; config lives in `.golangci.yml`, and `depguard` enforces the import boundaries.
+- **Vite+ (`vp`) builds, tests, formats and lints the client**, with pnpm as package manager. In `app/frontend`, `pnpm dev` serves the client with hot reload and proxies `/api` to the Go server. `pnpm build` writes `dist/client`; build it before `go build` or the binary serves no client. Config lives in `app/frontend/vite.config.ts`, with shared settings from `@antoine-bouteiller/devkit`.
+- **Svelte components need `pnpm run check:svelte`** (`svelte-check --tsgo`) on top of `vp check`, which does not type-check `.svelte` files.
+- **Nix pins dependency hashes.** After changing `app/frontend/pnpm-lock.yaml` or `go.sum`, run `scripts/update_nix_hashes.sh` and commit `flake.nix`. CI does it on pushes if you forget.
 
 ## Review Checklist for Agents
 
-- [ ] Run `bun install` after pulling remote changes and before getting started.
-- [ ] Run `bun fmt --check`, `bun run lint`, `bun check`, `bun run test`, `bun run knip`, and `bun run knip:production` to validate changes.
+- [ ] Run `pnpm --dir app/frontend install` after pulling remote changes and before getting started.
+- [ ] After changing `proto/`, run `buf lint` and `buf generate`.
+- [ ] From the root, run `golangci-lint run ./...` and `go test ./...`.
+- [ ] From `app/frontend`, run `pnpm exec vp check`, `pnpm run check:svelte`, `pnpm test`, `pnpm knip` and `pnpm knip:production`.

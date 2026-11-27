@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package armadarr.v1;
+
+// Reports whether the server is up.
+service HealthService {
+  rpc Check(CheckRequest) returns (CheckResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}
+
+message CheckRequest {}
+
+message CheckResponse {
+  Status status = 1;
+}
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_OK = 1;
+}

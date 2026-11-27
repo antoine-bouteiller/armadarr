@@ -1,7 +1,6 @@
 node_modules
 .git
 .gitignore
-eslint.config.mjs
-dist
+app/frontend/dist/client
+.svelte-check
 .env
-tests

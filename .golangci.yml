@@ -1,0 +1,54 @@
+version: '2'
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - depguard
+    - errorlint
+    - gocritic
+    - gosec
+    - misspell
+    - noctx
+    - revive
+    - sloglint
+    - unconvert
+    - usetesting
+  settings:
+    depguard:
+      # Add a rule per feature that denies every sibling feature when the feature is created.
+      rules:
+        integrations:
+          files: ['**/internal/integrations/**']
+          deny:
+            - pkg: github.com/antoine-bouteiller/armadarr/app/backend/internal/domains
+              desc: integrations are vendor clients and must not depend on business code
+            - pkg: github.com/antoine-bouteiller/armadarr/app/backend/internal/features
+              desc: integrations are vendor clients and must not depend on business code
+            - pkg: github.com/antoine-bouteiller/armadarr/app/backend/internal/server
+              desc: integrations are vendor clients and must not depend on business code
+        domains:
+          files: ['**/internal/domains/**']
+          deny:
+            - pkg: github.com/antoine-bouteiller/armadarr/app/backend/internal/features
+              desc: domains are shared by features and must not depend on one
+            - pkg: github.com/antoine-bouteiller/armadarr/app/backend/internal/server
+              desc: domains are shared by features and must not depend on one
+        database-driver:
+          files: ['$all', '!**/internal/database/**', '!**/internal/domains/*/postgres/**']
+          deny:
+            - pkg: github.com/jackc/pgx
+              desc: only internal/database and Postgres store implementations use the driver
+  exclusions:
+    generated: lax
+    presets:
+      - std-error-handling
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/antoine-bouteiller/armadarr

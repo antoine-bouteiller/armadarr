@@ -1,13 +1,17 @@
 node_modules
 .env
-resources
-index
 coverage
 mise.toml
 
-# node
-build
-dist
+# Built client, embedded by app/frontend/embed.go
+app/frontend/dist/*
+!app/frontend/dist/.gitkeep
+
+# Go
+/armadarr
+
+# Svelte diagnostics output
+.svelte-check
 
 # Claude
 settings.local.json

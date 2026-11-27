@@ -7,41 +7,19 @@
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Pins the Bun used by the build, the dev shell, and CI.
-    # Keep `@types/bun` and `packageManager` in package.json on the same version.
-    bun-flake = {
-      url = "github:antoine-bouteiller/bun-flake/v1.4.5";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs = {
     self,
     nixpkgs,
     git-hooks,
-    bun-flake,
   }: let
     supportedSystems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+    pkgsFor = system: import nixpkgs {inherit system;};
 
-    pkgsFor = system:
-      import nixpkgs {
-        inherit system;
-        overlays = [bun-flake.overlays.default];
-      };
-
-    # Production dependencies only, unpacked at their install paths from
-    # the tarballs listed by `scripts/nix_deps.ts`.
-    nodeModulesFor = pkgs:
-      pkgs.runCommand "armadarr-node-modules" {} (
-        pkgs.lib.concatMapStrings (dep: ''
-          mkdir -p "$out/${dep.path}"
-          tar -xzf ${pkgs.fetchurl {inherit (dep) url hash;}} -C "$out/${dep.path}" --strip-components=1
-        '') (builtins.fromJSON (builtins.readFile ./nix/deps.json))
-      );
-
-    # JS tooling runs from node_modules so hooks use the versions pinned in
-    # package.json.
+    # JS tooling runs from app/frontend/node_modules so hooks use the versions
+    # pinned in its package.json.
     gitHooksFor = system:
       git-hooks.lib.${system}.run {
         src = ./.;
@@ -49,7 +27,7 @@
           commit-msg = {
             enable = true;
             name = "commit-msg";
-            entry = "node_modules/.bin/devkit commit-msg";
+            entry = "app/frontend/node_modules/.bin/devkit commit-msg";
             stages = ["commit-msg"];
           };
           alejandra = {
@@ -59,41 +37,59 @@
           lockfile = {
             enable = true;
             name = "Check lockfile";
-            entry = "bun install --frozen-lockfile --silent";
+            entry = "pnpm --dir app/frontend install --frozen-lockfile --silent";
             pass_filenames = false;
             always_run = true;
           };
-          lint = {
+          vp-staged = {
             enable = true;
-            name = "oxlint";
-            entry = "bunx oxlint --fix --fix-suggestions";
-            files = "\\.(ts|tsx|js|mjs|cjs)$";
-            excludes = ["^oxlint\\.config\\.ts$"];
+            name = "vp staged";
+            entry = "pnpm --dir app/frontend exec vp staged";
+            pass_filenames = false;
+            always_run = true;
           };
-          format = {
+          # vp staged formats app/frontend only; this formats the rest of the repository.
+          oxfmt = {
             enable = true;
-            name = "bun fmt";
-            entry = "bun fmt";
-            excludes = ["\\.(nix|lock|toml|svg|png)$" "(^|/)(LICENSE|\\.(envrc|gitignore|dockerignore))$"];
+            name = "oxfmt";
+            entry = "app/frontend/node_modules/.bin/oxfmt -c app/frontend/node_modules/@antoine-bouteiller/devkit/dist/fmt.json";
+            files = "\\.(md|ya?ml|json5?)$";
+            excludes = ["^app/frontend/"];
+            # The built-in oxfmt hook limits itself to JavaScript and TypeScript.
+            types_or = [];
           };
-          nix-deps = {
+          svelte-check = {
             enable = true;
-            name = "Update nix/deps.json";
-            entry = "bun scripts/nix_deps.ts";
-            files = "^bun\\.lock$";
+            name = "svelte-check";
+            entry = "pnpm --dir app/frontend run check:svelte";
+            files = "^app/frontend/.*\\.(ts|svelte)$";
+            pass_filenames = false;
+          };
+          golangci-lint = {
+            enable = true;
+            name = "golangci-lint";
+            entry = "golangci-lint run --fix";
+            files = "(\\.go|^go\\.(mod|sum))$";
+            pass_filenames = false;
+          };
+          buf = {
+            enable = true;
+            name = "buf lint and generate";
+            entry = "sh -c 'buf lint && buf generate'";
+            files = "^(proto/|buf\\.)";
             pass_filenames = false;
           };
           knip = {
             enable = true;
             name = "knip";
-            entry = "bun run knip";
+            entry = "pnpm --dir app/frontend knip";
             pass_filenames = false;
             always_run = true;
           };
           knip-production = {
             enable = true;
             name = "knip (production)";
-            entry = "bun run knip:production";
+            entry = "pnpm --dir app/frontend knip:production";
             pass_filenames = false;
             always_run = true;
           };
@@ -106,47 +102,99 @@
         gitHooks = gitHooksFor system;
       in {
         default = pkgs.mkShell {
-          packages = [pkgs.bun pkgs.nodejs pkgs.alejandra] ++ gitHooks.enabledPackages;
+          packages = [pkgs.go pkgs.golangci-lint pkgs.buf pkgs.nodejs pkgs.pnpm pkgs.alejandra] ++ gitHooks.enabledPackages;
           inherit (gitHooks) shellHook;
         };
       });
 
       packages = forAllSystems (system: let
         pkgs = pkgsFor system;
-        nodeModules = nodeModulesFor pkgs;
+        inherit (pkgs) lib;
 
-        # `bun build --compile` bundles the server and, through the HTML
-        # import, the client into one standalone binary.
-        armadarr = pkgs.stdenv.mkDerivation {
-          pname = "armadarr";
+        # Only the files that change the dependency set, so source edits do
+        # not refetch it.
+        pnpmDeps = pkgs.fetchPnpmDeps {
+          pname = "armadarr-web";
+          version = "unstable";
+          src = lib.fileset.toSource {
+            root = ./app/frontend;
+            fileset = lib.fileset.unions [./app/frontend/package.json ./app/frontend/pnpm-lock.yaml ./app/frontend/pnpm-workspace.yaml];
+          };
+          fetcherVersion = 5;
+          hash = "sha256-d/9fQKF8C+0MOcZ4AX2Crk27tPRL4pK1HX/cc7cx7OM=";
+        };
+
+        web = pkgs.stdenvNoCC.mkDerivation {
+          pname = "armadarr-web";
           version = "unstable";
 
-          src = pkgs.lib.cleanSource ./.;
+          src = lib.fileset.toSource {
+            root = ./app/frontend;
+            fileset = lib.fileset.unions [
+              ./app/frontend/package.json
+              ./app/frontend/pnpm-lock.yaml
+              ./app/frontend/pnpm-workspace.yaml
+              ./app/frontend/tsconfig.json
+              ./app/frontend/vite.config.ts
+              ./app/frontend/svelte.config.js
+              ./app/frontend/index.html
+              ./app/frontend/assets
+              ./app/frontend/src
+            ];
+          };
 
-          nativeBuildInputs = [pkgs.bun];
+          inherit pnpmDeps;
+          nativeBuildInputs = [pkgs.nodejs pkgs.pnpm pkgs.pnpmConfigHook];
 
           buildPhase = ''
             runHook preBuild
-            ln -s ${nodeModules}/node_modules node_modules
-            bun build --compile --production --react-compiler src/index.ts --outfile armadarr
+            pnpm exec vp build
             runHook postBuild
           '';
 
           installPhase = ''
             runHook preInstall
-            install -Dm755 armadarr "$out/bin/armadarr"
+            cp -r dist/client "$out"
             runHook postInstall
           '';
+        };
 
-          # Stripping drops the bundle Bun appends to the compiled executable.
-          dontStrip = true;
+        # The client is embedded through app/frontend/embed.go, so the server is one
+        # static binary.
+        armadarr = pkgs.buildGoModule {
+          pname = "armadarr";
+          version = "unstable";
+
+          src = lib.fileset.toSource {
+            root = ./.;
+            fileset = lib.fileset.unions [
+              ./go.mod
+              ./go.sum
+              (lib.fileset.fileFilter (file: file.hasExt "go") ./app/backend)
+              ./app/frontend/embed.go
+              ./app/frontend/dist/.gitkeep
+            ];
+          };
+
+          vendorHash = "sha256-XQO4IBcw1+1qn/1rzBCMEfOmPTCPiFfk5ccEjPCb2Yo=";
+          subPackages = ["app/backend/cmd/armadarr"];
+          env.CGO_ENABLED = 0;
+          ldflags = ["-s" "-w"];
+
+          preBuild = ''
+            cp -r ${web} app/frontend/dist/client
+          '';
+          # The vendored-modules derivation runs preBuild too, without needing the client.
+          overrideModAttrs = _: {preBuild = "";};
+
+          passthru = {inherit web;};
 
           # The NixOS module's ExecStart relies on this.
           meta.mainProgram = "armadarr";
         };
       in {
         default = armadarr;
-        armadarr = armadarr;
+        inherit armadarr web;
       });
     }
     // {
@@ -224,7 +272,6 @@
 
             environment = {
               PORT = toString cfg.port;
-              NODE_ENV = "production";
             };
           };
         };

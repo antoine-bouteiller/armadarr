@@ -1,0 +1,18 @@
+version: v2
+clean: true
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/antoine-bouteiller/armadarr/app/backend/internal/gen
+plugins:
+  - local: [go, tool, protoc-gen-go]
+    out: app/backend/internal/gen
+    opt: paths=source_relative
+  - local: [go, tool, protoc-gen-connect-go]
+    out: app/backend/internal/gen
+    opt: paths=source_relative
+  - local: app/frontend/node_modules/.bin/protoc-gen-es
+    out: app/frontend/src/gen
+    opt: target=ts
+    include_imports: true
