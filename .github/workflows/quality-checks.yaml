@@ -25,27 +25,13 @@ jobs:
         uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
 
       - name: Install dependencies
-        run: pnpm --dir app/frontend install --frozen-lockfile
+        run: just install
 
-      - name: Check client
-        run: |
-          pnpm --dir app/frontend exec vp check
-          pnpm --dir app/frontend run check:svelte
+      - name: Check formatting, lint and types
+        run: just check
 
-      - name: Check formatting outside the client
-        run: app/frontend/node_modules/.bin/oxfmt -c app/frontend/node_modules/@antoine-bouteiller/devkit/dist/fmt.json --check '**/*.{md,yml,yaml,json5}' '!app/frontend/**'
-
-      - name: Check server
-        run: |
-          golangci-lint fmt --diff ./...
-          golangci-lint run ./...
-          go mod tidy -diff
-
-      - name: Check API contract
-        run: |
-          buf lint
-          buf generate
-          git diff --exit-code
+      - name: Check generated code
+        run: just check-generated
 
   test:
     name: Test
@@ -58,12 +44,10 @@ jobs:
         uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
 
       - name: Install dependencies
-        run: pnpm --dir app/frontend install --frozen-lockfile
+        run: just install
 
       - name: Run tests
-        run: |
-          go test ./...
-          pnpm --dir app/frontend test
+        run: just test
 
   nix-hashes:
     name: Nix Hashes
@@ -84,7 +68,7 @@ jobs:
         run: nix flake lock
 
       - name: Recompute dependency hashes
-        run: scripts/update_nix_hashes.sh
+        run: just hashes
 
       - name: Commit and push regenerated Nix files
         run: |
@@ -107,13 +91,10 @@ jobs:
         uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
 
       - name: Install dependencies
-        run: pnpm --dir app/frontend install --frozen-lockfile
+        run: just install
 
       - name: Run knip
-        run: pnpm --dir app/frontend knip
-
-      - name: Run knip (production)
-        run: pnpm --dir app/frontend knip:production
+        run: just knip
 
   build:
     name: Nix Build

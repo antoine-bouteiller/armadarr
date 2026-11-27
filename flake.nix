@@ -102,7 +102,7 @@
         gitHooks = gitHooksFor system;
       in {
         default = pkgs.mkShell {
-          packages = [pkgs.go pkgs.golangci-lint pkgs.buf pkgs.nodejs pkgs.pnpm pkgs.alejandra] ++ gitHooks.enabledPackages;
+          packages = [pkgs.go pkgs.golangci-lint pkgs.buf pkgs.nodejs pkgs.pnpm pkgs.just pkgs.alejandra] ++ gitHooks.enabledPackages;
           inherit (gitHooks) shellHook;
         };
       });

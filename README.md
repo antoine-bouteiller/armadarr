@@ -10,15 +10,16 @@ Full-stack media management meant to replace the \*arr stack and Autoscan. The s
 
 ## Setup
 
-Requires Nix. `nix develop` (or direnv with the bundled `.envrc`) provides Go, golangci-lint, buf, Node.js and pnpm.
+Requires Nix. `nix develop` (or direnv with the bundled `.envrc`) provides Go, golangci-lint, buf, Node.js, pnpm and just.
 
 ```bash
-pnpm --dir app/frontend install
-pnpm --dir app/frontend build   # Builds the client that the server embeds
-go run ./app/backend/cmd/armadarr
+just install
+just dev
 ```
 
-The server listens on port **3000**; set `PORT` to change it. It serves the web app at `/` and the API under `/api`.
+`just dev` starts the Go server on port **3000** and the Vite dev server with hot reload, which proxies `/api` to it. Open the URL Vite prints. Ctrl-C stops both. Restart it after a Go change; the client reloads by itself.
+
+`just build` writes a single `armadarr` binary that serves the web app at `/` and the API under `/api`. Set `PORT` to change its port.
 
 For Nix, run `nix build`. The flake also exports a [NixOS module](flake.nix) under `nixosModules.default` with `services.armadarr` options.
 
@@ -30,14 +31,13 @@ For Nix, run `nix build`. The flake also exports a [NixOS module](flake.nix) und
 
 ## Development
 
-```bash
-go run ./app/backend/cmd/armadarr   # Server on port 3000
-pnpm --dir app/frontend dev         # Client with hot reload, proxying /api to the server
-buf generate                        # Regenerate Go and TypeScript code after editing proto/
-go test ./...                       # Server tests
-pnpm --dir app/frontend test        # Client tests
-golangci-lint run ./...             # Lint the server
-pnpm --dir app/frontend run check   # Format, lint and type-check the client
-```
+Run `just` to list the recipes:
 
-After changing `app/frontend/pnpm-lock.yaml` or `go.sum`, run `scripts/update_nix_hashes.sh` and commit the updated `flake.nix`.
+```bash
+just generate   # Regenerate Go and TypeScript code after editing proto/
+just test       # Server and client tests
+just fix        # Format and apply safe lint fixes
+just check      # Format, lint and type checks, without changing files
+just knip       # Unused files, exports and dependencies in the client
+just hashes     # Update flake.nix after app/frontend/pnpm-lock.yaml or go.sum changes
+```

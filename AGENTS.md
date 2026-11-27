@@ -12,15 +12,15 @@ Full-stack media management service meant to replace the \*arr stack and Autosca
 
 ## Toolchain
 
-- **The dev shell provides every tool.** Run commands inside `nix develop` (direnv loads it): Go, golangci-lint, buf, Node.js and pnpm.
-- **Go is the server.** `go run ./app/backend/cmd/armadarr` listens on `PORT` (default 3000). Lint and format with `golangci-lint run ./...` and `golangci-lint fmt ./...` from the root; config lives in `.golangci.yml`, and `depguard` enforces the import boundaries.
-- **Vite+ (`vp`) builds, tests, formats and lints the client**, with pnpm as package manager. In `app/frontend`, `pnpm dev` serves the client with hot reload and proxies `/api` to the Go server. `pnpm build` writes `dist/client`; build it before `go build` or the binary serves no client. Config lives in `app/frontend/vite.config.ts`, with shared settings from `@antoine-bouteiller/devkit`.
-- **Svelte components need `pnpm run check:svelte`** (`svelte-check --tsgo`) on top of `vp check`, which does not type-check `.svelte` files.
-- **Nix pins dependency hashes.** After changing `app/frontend/pnpm-lock.yaml` or `go.sum`, run `scripts/update_nix_hashes.sh` and commit `flake.nix`. CI does it on pushes if you forget.
+- **The dev shell provides every tool.** Run commands inside `nix develop` (direnv loads it): Go, golangci-lint, buf, Node.js, pnpm and just.
+- **`just` is the entry point.** The `justfile` at the root wraps every command below; `just` lists the recipes. CI calls the same recipes, so prefer them over the raw commands.
+- **Go is the server.** `go run ./app/backend/cmd/armadarr` listens on `PORT` (default 3000). golangci-lint config lives in `.golangci.yml`, and `depguard` enforces the import boundaries.
+- **Vite+ (`vp`) builds, tests, formats and lints the client**, with pnpm as package manager. `app/frontend` is a self-contained pnpm project; `just dev` runs its dev server, which proxies `/api` to the Go server. The client build goes to `app/frontend/dist/client`; build it before `go build` or the binary serves no client (`just build` does both). Config lives in `app/frontend/vite.config.ts`, with shared settings from `@antoine-bouteiller/devkit`.
+- **Svelte components need `svelte-check`** on top of `vp check`, which does not type-check `.svelte` files. `just check` runs both.
+- **Nix pins dependency hashes.** After changing `app/frontend/pnpm-lock.yaml` or `go.sum`, run `just hashes` and commit `flake.nix`. CI does it on pushes if you forget.
 
 ## Review Checklist for Agents
 
-- [ ] Run `pnpm --dir app/frontend install` after pulling remote changes and before getting started.
-- [ ] After changing `proto/`, run `buf lint` and `buf generate`.
-- [ ] From the root, run `golangci-lint run ./...` and `go test ./...`.
-- [ ] From `app/frontend`, run `pnpm exec vp check`, `pnpm run check:svelte`, `pnpm test`, `pnpm knip` and `pnpm knip:production`.
+- [ ] Run `just install` after pulling remote changes and before getting started.
+- [ ] After changing `proto/`, run `just generate`.
+- [ ] Run `just fix`, then `just check`, `just test` and `just knip` to validate changes.
