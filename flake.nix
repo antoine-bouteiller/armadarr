@@ -54,7 +54,7 @@
             name = "oxfmt";
             entry = "app/frontend/node_modules/.bin/oxfmt -c app/frontend/node_modules/@antoine-bouteiller/devkit/dist/fmt.json";
             files = "\\.(md|ya?ml|json5?)$";
-            excludes = ["^app/frontend/"];
+            excludes = ["^app/frontend/" "^vendor/"];
             # The built-in oxfmt hook limits itself to JavaScript and TypeScript.
             types_or = [];
           };
@@ -111,18 +111,7 @@
         pkgs = pkgsFor system;
         inherit (pkgs) lib;
 
-        # Only the files that change the dependency set, so source edits do
-        # not refetch it.
-        pnpmDeps = pkgs.fetchPnpmDeps {
-          pname = "armadarr-web";
-          version = "unstable";
-          src = lib.fileset.toSource {
-            root = ./app/frontend;
-            fileset = lib.fileset.unions [./app/frontend/package.json ./app/frontend/pnpm-lock.yaml ./app/frontend/pnpm-workspace.yaml];
-          };
-          fetcherVersion = 5;
-          hash = "sha256-d/9fQKF8C+0MOcZ4AX2Crk27tPRL4pK1HX/cc7cx7OM=";
-        };
+        pnpmLock = pkgs.callPackage ./nix/pnpm-lock.nix {} ./app/frontend/pnpm-lock.yaml;
 
         web = pkgs.stdenvNoCC.mkDerivation {
           pname = "armadarr-web";
@@ -143,8 +132,21 @@
             ];
           };
 
-          inherit pnpmDeps;
-          nativeBuildInputs = [pkgs.nodejs pkgs.pnpm pkgs.pnpmConfigHook];
+          nativeBuildInputs = [pkgs.nodejs pkgs.pnpm];
+
+          configurePhase = ''
+            runHook preConfigure
+            export HOME=$TMPDIR
+            export pnpm_config_store_dir=$TMPDIR/pnpm-store
+            export pnpm_config_pm_on_fail=ignore
+            export pnpm_config_trust_lockfile=true
+            export pnpm_config_update_notifier=false
+            export pnpm_config_reporter=append-only
+            cp --no-preserve=mode ${pnpmLock} pnpm-lock.yaml
+            pnpm install --offline --frozen-lockfile --ignore-scripts
+            patchShebangs node_modules/{*,.*}
+            runHook postConfigure
+          '';
 
           buildPhase = ''
             runHook preBuild
@@ -170,13 +172,14 @@
             fileset = lib.fileset.unions [
               ./go.mod
               ./go.sum
+              ./vendor
               (lib.fileset.fileFilter (file: file.hasExt "go") ./app/backend)
               ./app/frontend/embed.go
               ./app/frontend/dist/.gitkeep
             ];
           };
 
-          vendorHash = "sha256-XQO4IBcw1+1qn/1rzBCMEfOmPTCPiFfk5ccEjPCb2Yo=";
+          vendorHash = null;
           subPackages = ["app/backend/cmd/armadarr"];
           env.CGO_ENABLED = 0;
           ldflags = ["-s" "-w"];
@@ -184,8 +187,6 @@
           preBuild = ''
             cp -r ${web} app/frontend/dist/client
           '';
-          # The vendored-modules derivation runs preBuild too, without needing the client.
-          overrideModAttrs = _: {preBuild = "";};
 
           passthru = {inherit web;};
 

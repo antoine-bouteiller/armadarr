@@ -3,7 +3,7 @@
 frontend := "pnpm --dir app/frontend"
 oxfmt := "app/frontend/node_modules/.bin/oxfmt -c app/frontend/node_modules/@antoine-bouteiller/devkit/dist/fmt.json"
 # Files outside app/frontend, which `vp` does not format.
-root_fmt := "'**/*.{md,yml,yaml,json5}' '!app/frontend/**'"
+root_fmt := "'**/*.{md,yml,yaml,json5}' '!app/frontend/**' '!vendor/**'"
 
 [private]
 default:
@@ -62,9 +62,6 @@ fix:
     golangci-lint fmt ./...
     golangci-lint run --fix ./...
     go mod tidy
+    go mod vendor
     {{ frontend }} exec vp check --fix
     {{ oxfmt }} {{ root_fmt }}
-
-# Recompute the dependency hashes in flake.nix after a lockfile changes
-hashes:
-    scripts/update_nix_hashes.sh

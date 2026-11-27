@@ -17,7 +17,7 @@ Full-stack media management service meant to replace the \*arr stack and Autosca
 - **Go is the server.** `go run ./app/backend/cmd/armadarr` listens on `PORT` (default 3000). golangci-lint config lives in `.golangci.yml`, and `depguard` enforces the import boundaries.
 - **Vite+ (`vp`) builds, tests, formats and lints the client**, with pnpm as package manager. `app/frontend` is a self-contained pnpm project; `just dev` runs its dev server, which proxies `/api` to the Go server. The client build goes to `app/frontend/dist/client`; build it before `go build` or the binary serves no client (`just build` does both). Config lives in `app/frontend/vite.config.ts`, with shared settings from `@antoine-bouteiller/devkit`.
 - **Svelte components need `svelte-check`** on top of `vp check`, which does not type-check `.svelte` files. `just check` runs both.
-- **Nix pins dependency hashes.** After changing `app/frontend/pnpm-lock.yaml` or `go.sum`, run `just hashes` and commit `flake.nix`. CI does it on pushes if you forget.
+- **The Nix build needs no dependency hash.** Go modules are committed in `vendor/`: `just fix` runs `go mod vendor`, and Renovate updates it in its PRs. Never edit `vendor/` by hand. The client build reads `app/frontend/pnpm-lock.yaml` directly through `nix/pnpm-lock.nix`.
 
 ## Review Checklist for Agents
 

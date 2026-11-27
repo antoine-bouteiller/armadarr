@@ -39,5 +39,4 @@ just test       # Server and client tests
 just fix        # Format and apply safe lint fixes
 just check      # Format, lint and type checks, without changing files
 just knip       # Unused files, exports and dependencies in the client
-just hashes     # Update flake.nix after app/frontend/pnpm-lock.yaml or go.sum changes
 ```

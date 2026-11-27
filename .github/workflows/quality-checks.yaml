@@ -49,37 +49,6 @@ jobs:
       - name: Run tests
         run: just test
 
-  nix-hashes:
-    name: Nix Hashes
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-          token: ${{ secrets.NIX_UPDATE_GITHUB_TOKEN }}
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31.11.5
-
-      - name: Lock flake inputs
-        run: nix flake lock
-
-      - name: Recompute dependency hashes
-        run: just hashes
-
-      - name: Commit and push regenerated Nix files
-        run: |
-          git diff --quiet flake.lock flake.nix && exit 0
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add flake.lock flake.nix
-          git commit --no-verify -m "chore: regenerate Nix hashes and flake lock"
-          git push
-          exit 1
-
   knip:
     name: Knip
     runs-on: ubuntu-latest

@@ -102,6 +102,7 @@ app/
     ├── src/                     Svelte app; src/gen is written by buf generate
     └── embed.go                 embeds dist/client
 proto/armadarr/v1/               API contract
+vendor/                          Go modules written by go mod vendor
 go.mod                           one Go module for app/backend and app/frontend/embed.go
 ```
 
@@ -271,10 +272,10 @@ func Handler(client fs.FS) http.Handler
   dialect. `[G-2]` keeps callers unchanged, not the SQL.
 - `[C-3]` The dev shell does not provide `postgresql` yet. `[KD-8]` needs it for `initdb` and
   `pg_ctl`.
-- `[C-4]` `flake.nix` pins the hash of the pnpm dependencies and of the Go vendor directory.
-  `scripts/update_nix_hashes.sh` recomputes both, and the `nix-hashes` CI job runs it and pushes the
-  result. The pnpm hash is meant to be the same on every platform; this has been checked on
-  aarch64-darwin only.
+- `[C-4]` `flake.nix` pins no dependency hash. Go modules are committed in `vendor/`, which
+  `go mod vendor` writes and Renovate updates. `nix/pnpm-lock.nix` fetches each client tarball with
+  the integrity hash from `app/frontend/pnpm-lock.yaml`. Its YAML parser only reads the subset pnpm
+  writes, so a lockfile format change can break evaluation.
 - `[C-5]` Autoscan's speech detection uses onnxruntime, which needs cgo in Go. Porting it would end
   the `CGO_ENABLED=0` static build. Its spec decides.
 - `[C-6]` The tests in `app/backend/internal/server/server_test.go`, `app/backend/internal/config/config_test.go` and
