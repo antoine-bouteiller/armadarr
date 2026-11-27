@@ -27,7 +27,7 @@
     "oxfmt": "0.79.0",
     "svelte-check": "4.7.8",
     "svelte2tsx": "0.7.63",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vite-plus": "1.8.0"
   },
   "packageManager": "pnpm@12.9.0"
